@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AA费用分摊计算器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+        
+        h2 {
+            font-size: 18px;
+            color: #555;
+            margin-bottom: 15px;
+        }
+        
+        .participant-manager {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .participant-manager input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .participant-manager button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .participant-manager button:hover {
+            background-color: #45a049;
+        }
+        
+        .participant-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .participant-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            background-color: #f0f0f0;
+            border-radius: 20px;
+        }
+        
+        .participant-item .remove-btn {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* iPhone 17及其他小屏幕设备适配 */
+        @media (max-width: 430px) {
+            /* 容器宽度调整 */
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+            
+            /* 表单布局调整 - 两行填报，一行按钮 */
+            .expense-form {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto auto auto;
+                gap: 10px;
+            }
+            
+            /* 第一行：出资人 + 分摊对象 */
+            .form-group.payer {
+                grid-column: 1 / 2;
+                grid-row: 1 / 2;
+            }
+            
+            .form-group.split {
+                grid-column: 2 / 3;
+                grid-row: 1 / 2;
+            }
+            
+            /* 第二行：消费金额 + 消费内容 */
+            .form-group.amount {
+                grid-column: 1 / 2;
+                grid-row: 2 / 3;
+            }
+            
+            .form-group.description {
+                grid-column: 2 / 3;
+                grid-row: 2 / 3;
+            }
+            
+            /* 第三行：添加消费按钮 */
+            .add-expense-btn {
+                grid-column: 1 / 3;
+                grid-row: 3 / 4;
+                padding: 15px;
+                font-size: 18px;
+                height: auto;
+                width: 100%;
+                border: none;
+                border-radius: 4px;
+                background-color: #2196F3;
+                color: white;
+            }
+            
+            /* 表单元素宽度调整 */
+            .form-group.payer,
+            .form-group.amount,
+            .form-group.description,
+            .form-group.split {
+                width: 100%;
+            }
+            
+            /* 下拉框高度调整 */
+            .multi-select,
+            #expensePayer {
+                height: 36px;
+                font-size: 14px;
+            }
+            
+            /* 输入框高度调整 */
+            #expenseAmount,
+            #expenseDescription {
+                height: 36px;
+                font-size: 14px;
+            }
+            
+            /* 消费记录容器，添加水平滚动 */
+            .expense-list-container {
+                overflow-x: auto;
+                margin-bottom: 15px;
+                border-radius: 6px;
+                border: 1px solid #e0e0e0;
+            }
+            
+            /* 表头样式 - 小屏 */
+            .expense-header {
+                min-width: 600px;
+                grid-template-columns: 60px 1fr 120px 1fr 80px !important;
+                font-size: 14px;
+                padding: 8px;
+            }
+            
+            /* 消费记录样式 - 小屏 */
+            .expense-item {
+                min-width: 600px;
+                grid-template-columns: 60px 1fr 120px 1fr 80px !important;
+                font-size: 14px;
+                padding: 8px;
+            }
+        }
+        
+        /* 全局样式 - 适用于所有设备 */
+        .expense-list-container {
+            overflow-x: auto;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        /* 表头样式 - 全局 */
+        .expense-header {
+            min-width: 600px;
+            grid-template-columns: 80px 1fr 120px 1fr 80px !important;
+            font-size: 14px;
+            padding: 10px;
+        }
+        
+        /* 消费记录样式 - 全局 */
+        .expense-item {
+            min-width: 600px;
+            grid-template-columns: 80px 1fr 120px 1fr 80px !important;
+            font-size: 14px;
+            padding: 10px;
+        }
+        
+        .expense-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: flex-end;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .form-group label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .form-group input, .form-group select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .form-group.payer {
+            width: 120px;
+        }
+        
+        .form-group.amount {
+            width: 120px;
+        }
+        
+        .form-group.description {
+            flex: 1;
+        }
+        
+        .form-group.split {
+            flex: 1;
+        }
+        
+        .multi-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            height: 36px;
+            cursor: pointer;
+            overflow-y: auto;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            background-color: white;
+        }
+        
+        /* 美化多选下拉框的选项样式 */
+        .multi-select option {
+            padding: 4px 8px;
+            margin: 2px 0;
+            border-radius: 2px;
+            font-size: 14px;
+        }
+        
+        /* 确保所有select选项的字体大小一致 */
+        select option {
+            font-size: 14px;
+        }
+        
+        /* 明确设置两个下拉列表的字体大小 */
+        #expensePayer,
+        #splitSelect {
+            font-size: 14px !important;
+        }
+        
+        .multi-select option:hover {
+            background-color: #f0f0f0;
+        }
+        
+        
+        
+        .add-expense-btn {
+            padding: 8px 16px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .add-expense-btn:hover {
+            background-color: #0b7dda;
+        }
+        
+        .expense-list {
+            margin-bottom: 20px;
+        }
+        
+        .expense-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        
+        .expense-header {
+            display: grid;
+            grid-template-columns: 120px 1fr 120px 1fr 80px;
+            gap: 10px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .expense-header-item {
+            text-align: left;
+        }
+        
+        .expense-header-item:last-child {
+            text-align: center;
+        }
+        
+        .expense-item {
+            display: grid;
+            grid-template-columns: 120px 1fr 120px 1fr 80px;
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        
+        .expense-item .remove-expense {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            justify-self: center;
+        }
+        
+        .calculate-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #FF9800;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        
+        .calculate-btn:hover {
+            background-color: #e68a00;
+        }
+        
+        .results {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .result-item {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 15px 0;
+            border-bottom: 1px solid #e0e0e0;
+            align-items: center;
+        }
+        
+        .result-item .name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .result-item .details {
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 14px;
+        }
+        
+        .result-item .details span {
+            color: #666;
+        }
+        
+        .result-item .details span.net-positive {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        
+        .result-item .details span.net-negative {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+        
+        .result-item .details span.net-zero {
+            color: #95a5a6;
+            font-weight: bold;
+        }
+        
+        .net-positive {
+            color: #f44336;
+        }
+        
+        .net-negative {
+            color: #4CAF50;
+        }
+        
+        .net-zero {
+            color: #666;
+        }
+        
+        .suggestion {
+            background-color: #fff3cd;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #ffc107;
+            overflow-x: hidden;
+        }
+        
+        .suggestion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .toggle-btn {
+            padding: 4px 12px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        .toggle-btn:hover {
+            background-color: #0b7dda;
+        }
+        
+        #suggestionText.single-line {
+            white-space: normal;
+            overflow: visible;
+            padding-bottom: 0;
+        }
+        
+        #suggestionText.multi-line {
+            white-space: normal;
+            line-height: 1.8;
+            padding-left: 20px;
+        }
+        
+        .error-message {
+            color: #f44336;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- <h1>AA费用分摊计算器</h1> -->
+        
+        <!-- 参与者管理 -->
+        <div class="section">
+            <h2>1. 参与者管理</h2>
+            <div class="participant-manager">
+                <input type="text" id="participantName" placeholder="输入参与者姓名">
+                <button id="addParticipant">添加参与者</button>
+            </div>
+            <div class="participant-list" id="participantList"></div>
+            <div class="error-message" id="participantError"></div>
+        </div>
+        
+        <!-- 消费记录 -->
+        <div class="section">
+            <h2>2. 消费记录</h2>
+            <div class="expense-form">
+                <div class="form-group payer">
+                    <label for="expensePayer">出资人</label>
+                    <select id="expensePayer" disabled>
+                        <option value="">请选择</option>
+                    </select>
+                </div>
+                <div class="form-group split">
+                    <label for="splitSelect">分摊对象</label>
+                    <select id="splitSelect" multiple class="multi-select" size="1">
+                    </select>
+
+                </div>
+                <div class="form-group amount">
+                    <label for="expenseAmount">消费金额</label>
+                    <input type="number" id="expenseAmount" step="0.01" placeholder="0.00">
+                </div>
+                <div class="form-group description">
+                    <label for="expenseDescription">消费内容</label>
+                    <input type="text" id="expenseDescription" placeholder="如：午餐、门票等">
+                </div>
+                <button id="addExpense" class="add-expense-btn" disabled>添加消费</button>
+            </div>
+            <div class="error-message" id="expenseError"></div>
+            <div class="expense-list-container">
+                <div class="expense-header">
+                    <div class="expense-header-item">出资人</div>
+                    <div class="expense-header-item">分摊对象</div>
+                    <div class="expense-header-item">消费金额</div>
+                    <div class="expense-header-item">消费内容</div>
+                    <div class="expense-header-item">操作</div>
+                </div>
+                <div class="expense-list" id="expenseList"></div>
+            </div>
+        </div>
+        
+        <!-- 计算按钮 -->
+        <button id="calculate" class="calculate-btn" disabled>计算分摊</button>
+        
+        <!-- 结果展示 -->
+        <div class="results" id="results" style="display: none;">
+            <h2>3. 计算结果</h2>
+            <div id="resultDetails"></div>
+        </div>
+        
+        <!-- 结算建议 -->
+        <div class="suggestion" id="suggestion" style="display: none;">
+            <div class="suggestion-header">
+                <h2>4. 结算建议</h2>
+                <button id="toggleSuggestion" class="toggle-btn">切换为多行</button>
+            </div>
+            <div id="suggestionText" class="single-line"></div>
+        </div>
+    </div>
+    
+    <script>
+        // 数据存储
+        let participants = [];
+        let expenses = [];
+        
+        // DOM元素
+        const participantNameInput = document.getElementById('participantName');
+        const addParticipantBtn = document.getElementById('addParticipant');
+        const participantList = document.getElementById('participantList');
+        const participantError = document.getElementById('participantError');
+        const expenseAmountInput = document.getElementById('expenseAmount');
+        const expensePayerSelect = document.getElementById('expensePayer');
+        const expenseDescriptionInput = document.getElementById('expenseDescription');
+        const splitSelect = document.getElementById('splitSelect');
+        const addExpenseBtn = document.getElementById('addExpense');
+        const expenseError = document.getElementById('expenseError');
+        const expenseList = document.getElementById('expenseList');
+        const calculateBtn = document.getElementById('calculate');
+        const resultsDiv = document.getElementById('results');
+        const resultDetails = document.getElementById('resultDetails');
+        const suggestionDiv = document.getElementById('suggestion');
+        const suggestionText = document.getElementById('suggestionText');
+        const toggleSuggestionBtn = document.getElementById('toggleSuggestion');
+        
+        // 添加参与者函数
+        function addParticipant() {
+            const name = participantNameInput.value.trim();
+            if (!name) {
+                participantError.textContent = '请输入参与者姓名';
+                return;
+            }
+            if (participants.includes(name)) {
+                participantError.textContent = '该参与者已存在';
+                return;
+            }
+            
+            participants.push(name);
+            participantNameInput.value = '';
+            participantError.textContent = '';
+            
+            updateParticipantUI();
+            updateExpenseForm();
+        }
+        
+        // 点击按钮添加参与者
+        addParticipantBtn.addEventListener('click', addParticipant);
+        
+        // 回车键添加参与者
+        participantNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addParticipant();
+            }
+        });
+        
+        // 存储原始单行建议，用于切换恢复
+        let originalSuggestionHTML = '';
+        
+        // 结算建议单行/多行切换
+        toggleSuggestionBtn.addEventListener('click', () => {
+            const isSingleLine = suggestionText.classList.contains('single-line');
+            
+            if (isSingleLine) {
+                // 保存原始单行HTML
+                originalSuggestionHTML = suggestionText.innerHTML;
+                
+                // 将分号分隔的建议转换为每行一条，保留HTML格式
+                const suggestions = originalSuggestionHTML.split('；');
+                const multiLineText = suggestions
+                    .map(s => s.trim())
+                    .filter(s => s)
+                    .join('<br>');
+                
+                // 切换为多行模式
+                suggestionText.innerHTML = multiLineText;
+                suggestionText.classList.remove('single-line');
+                suggestionText.classList.add('multi-line');
+                toggleSuggestionBtn.textContent = '切换为一行';
+            } else {
+                // 切换回单行模式，恢复原始HTML
+                suggestionText.innerHTML = originalSuggestionHTML;
+                suggestionText.classList.remove('multi-line');
+                suggestionText.classList.add('single-line');
+                toggleSuggestionBtn.textContent = '切换为多行';
+            }
+        });
+        
+        // 删除参与者
+        function removeParticipant(name) {
+            participants = participants.filter(p => p !== name);
+            updateParticipantUI();
+            updateExpenseForm();
+            updateExpenseList();
+        }
+        
+        // 更新参与者UI
+        function updateParticipantUI() {
+            participantList.innerHTML = '';
+            participants.forEach(name => {
+                const item = document.createElement('div');
+                item.className = 'participant-item';
+                item.innerHTML = `
+                    <span>${name}</span>
+                    <button class="remove-btn" onclick="removeParticipant('${name}')">×</button>
+                `;
+                participantList.appendChild(item);
+            });
+        }
+        
+        // 更新消费表单
+        function updateExpenseForm() {
+            // 更新出资人下拉框
+            expensePayerSelect.innerHTML = '<option value="">请选择</option>';
+            participants.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                expensePayerSelect.appendChild(option);
+            });
+            
+            // 更新分摊对象多选下拉框
+            splitSelect.innerHTML = '';
+            participants.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                option.textContent = name;
+                option.selected = false; // 默认不全选
+                splitSelect.appendChild(option);
+            });
+            
+            // 启用/禁用表单
+            const hasEnoughParticipants = participants.length >= 2;
+            expensePayerSelect.disabled = !hasEnoughParticipants;
+            splitSelect.disabled = !hasEnoughParticipants;
+            addExpenseBtn.disabled = !hasEnoughParticipants;
+            calculateBtn.disabled = !hasEnoughParticipants || expenses.length === 0;
+        }
+        
+        // 监听出资人选择变化，自动选择出资人作为分摊对象
+        expensePayerSelect.addEventListener('change', () => {
+            const selectedPayer = expensePayerSelect.value;
+            if (selectedPayer) {
+                // 找到对应的选项并设置为选中
+                const option = splitSelect.querySelector(`option[value="${selectedPayer}"]`);
+                if (option) {
+                    option.selected = true;
+                }
+            }
+        });
+        
+        // 添加消费
+        addExpenseBtn.addEventListener('click', () => {
+            const amount = parseFloat(expenseAmountInput.value);
+            const payer = expensePayerSelect.value;
+            const description = expenseDescriptionInput.value.trim();
+            
+            // 从多选下拉框获取分摊对象
+            const splitPersons = Array.from(splitSelect.selectedOptions)
+                .map(option => option.value);
+            
+            // 验证
+            if (isNaN(amount) || amount <= 0) {
+                expenseError.textContent = '金额必须大于0';
+                return;
+            }
+            if (!payer) {
+                expenseError.textContent = '请选择';
+                return;
+            }
+            if (splitPersons.length === 0) {
+                expenseError.textContent = '请选择至少1人分摊费用';
+                return;
+            }
+            
+            // 添加消费
+            expenses.push({
+                id: Date.now(),
+                amount: parseFloat(amount.toFixed(2)),
+                payer,
+                description,
+                splitPersons
+            });
+            
+            // 重置表单
+            expenseAmountInput.value = '';
+            expensePayerSelect.value = '';
+            expenseDescriptionInput.value = '';
+            
+            // 重置分摊对象为全选
+            Array.from(splitSelect.options).forEach(option => {
+                option.selected = true;
+            });
+            
+            expenseError.textContent = '';
+            
+            updateExpenseList();
+            updateCalculateBtn();
+        });
+        
+        // 删除消费
+        function removeExpense(id) {
+            expenses = expenses.filter(e => e.id !== id);
+            updateExpenseList();
+            updateCalculateBtn();
+        }
+        
+        // 更新消费列表
+        function updateExpenseList() {
+            expenseList.innerHTML = '';
+            expenses.forEach(expense => {
+                const item = document.createElement('div');
+                item.className = 'expense-item';
+                item.innerHTML = `
+                    <div>${expense.payer}</div>
+                    <div>${expense.splitPersons.join(', ')}</div>
+                    <div><strong>¥${expense.amount.toFixed(2)}</strong></div>
+                    <div>${expense.description || '无'}</div>
+                    <div><button class="remove-expense" onclick="removeExpense(${expense.id})">删除</button></div>
+                `;
+                expenseList.appendChild(item);
+            });
+        }
+        
+        // 更新计算按钮状态
+        function updateCalculateBtn() {
+            calculateBtn.disabled = participants.length < 2 || expenses.length === 0;
+        }
+        
+        // 计算分摊
+        calculateBtn.addEventListener('click', () => {
+            // 初始化结果对象
+            const result = {};
+            participants.forEach(name => {
+                result[name] = {
+                    totalPaid: 0,
+                    totalOwed: 0,
+                    net: 0
+                };
+            });
+            
+            // 处理每笔消费
+            expenses.forEach(expense => {
+                // 累加到出资人的总垫付
+                result[expense.payer].totalPaid += expense.amount;
+                
+                // 计算每人应付
+                const perPerson = expense.amount / expense.splitPersons.length;
+                
+                // 累加到每个分摊对象的总应付
+                expense.splitPersons.forEach(name => {
+                    result[name].totalOwed += parseFloat(perPerson.toFixed(2));
+                });
+            });
+            
+            // 计算净额
+            participants.forEach(name => {
+                result[name].net = parseFloat((result[name].totalOwed - result[name].totalPaid).toFixed(2));
+            });
+            
+            // 显示结果
+            displayResults(result);
+            
+            // 显示结算建议
+            displaySuggestion(result);
+        });
+        
+        // 显示结果
+        function displayResults(result) {
+            resultDetails.innerHTML = '';
+            participants.forEach(name => {
+                const item = document.createElement('div');
+                item.className = 'result-item';
+                
+                let netClass = 'net-zero';
+                let netText = '已结清';
+                if (result[name].net > 0) {
+                    netClass = 'net-positive';
+                    netText = `应支付 ¥${result[name].net.toFixed(2)}`;
+                } else if (result[name].net < 0) {
+                    netClass = 'net-negative';
+                    netText = `应收 ¥${Math.abs(result[name].net).toFixed(2)}`;
+                }
+                
+                item.innerHTML = `
+                    <div class="name">${name}</div>
+                    <div class="details">
+                        <span>总垫付: ¥${result[name].totalPaid.toFixed(2)}</span>
+                        <span>总应付: ¥${result[name].totalOwed.toFixed(2)}</span>
+                        <span class="${netClass}">${netText}</span>
+                    </div>
+                `;
+                resultDetails.appendChild(item);
+            });
+            
+            resultsDiv.style.display = 'block';
+        }
+        
+        // 显示结算建议
+        function displaySuggestion(result) {
+            const payers = []; // 应付钱的人，净额为正
+            const receivers = []; // 应收钱的人，净额为负
+            
+            participants.forEach(name => {
+                if (result[name].net > 0) {
+                    payers.push({ name, amount: result[name].net });
+                } else if (result[name].net < 0) {
+                    receivers.push({ name, amount: Math.abs(result[name].net) });
+                }
+            });
+            
+            let suggestion = '';
+            if (payers.length === 0 && receivers.length === 0) {
+                suggestion = '所有参与者已结清，无需转账。';
+            } else {
+                // 优化结算建议：明确具体转账路径
+                const transferSuggestions = [];
+                
+                // 创建副本避免修改原数组
+                const payersCopy = [...payers];
+                const receiversCopy = [...receivers];
+                
+                // 遍历付款人和收款人，匹配转账金额
+                for (let i = 0; i < payersCopy.length; i++) {
+                    const payer = payersCopy[i];
+                    if (payer.amount <= 0) continue;
+                    
+                    for (let j = 0; j < receiversCopy.length; j++) {
+                        const receiver = receiversCopy[j];
+                        if (receiver.amount <= 0) continue;
+                        
+                        // 计算转账金额
+                        const transferAmount = Math.min(payer.amount, receiver.amount);
+                        
+                        // 添加转账建议
+                        transferSuggestions.push(`${payer.name} <strong>转给</strong> ${receiver.name} ¥${transferAmount.toFixed(2)}`);
+                        
+                        // 更新剩余金额
+                        payer.amount -= transferAmount;
+                        receiver.amount -= transferAmount;
+                        
+                        // 如果付款人已结清，跳出内层循环
+                        if (payer.amount <= 0) break;
+                    }
+                }
+                
+                suggestion = transferSuggestions.join('；');
+            }
+            
+            document.getElementById('suggestionText').innerHTML = suggestion;
+        suggestionDiv.style.display = 'block';
+        }
+        
+        // 监听金额输入，只允许输入数字和小数点，在失去焦点时格式化
+        expenseAmountInput.addEventListener('input', (e) => {
+            let value = e.target.value;
+            // 只允许输入数字和小数点，且只能有一个小数点
+            value = value.replace(/[^0-9.]/g, '');
+            const parts = value.split('.');
+            if (parts.length > 2) {
+                value = parts[0] + '.' + parts.slice(1).join('');
+            }
+            e.target.value = value;
+        });
+        
+        // 失去焦点时格式化保留两位小数
+        expenseAmountInput.addEventListener('blur', (e) => {
+            let value = e.target.value;
+            if (value) {
+                const num = parseFloat(value);
+                if (!isNaN(num)) {
+                    e.target.value = num.toFixed(2);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
