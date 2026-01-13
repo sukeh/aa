@@ -623,9 +623,19 @@
     </div>
     
     <script>
-                // 显示当前屏幕尺寸
-        const screenWidth = window.innerWidth;
-        const screenHeight = window.innerHeight;
+        // 显示当前屏幕尺寸
+        let screenWidth = window.innerWidth;
+        let screenHeight = window.innerHeight;
+        
+        // 尝试获取实际屏幕尺寸，考虑GitHub Pages可能的iframe嵌套问题
+        if (window.outerWidth) {
+            screenWidth = window.outerWidth;
+            screenHeight = window.outerHeight;
+        } else if (screen && screen.width) {
+            screenWidth = screen.width;
+            screenHeight = screen.height;
+        }
+        
         alert(`当前屏幕尺寸：${screenWidth}px × ${screenHeight}px`);
         
         // 数据存储
@@ -1021,4 +1031,5 @@
     </script>
 </body>
 </html>
+
 
