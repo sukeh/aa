@@ -584,6 +584,12 @@
     </div>
     
     <script>
+        // 页面加载时显示屏幕尺寸
+        window.addEventListener('load', () => {
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+            alert(`当前屏幕尺寸：${screenWidth}px × ${screenHeight}px`);
+        });
         // 数据存储
         let participants = [];
         let expenses = [];
@@ -960,3 +966,4 @@
 </body>
 
 </html>
+
