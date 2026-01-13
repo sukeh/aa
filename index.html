@@ -81,10 +81,11 @@
         .participant-item {
             display: flex;
             align-items: center;
-            gap: 5px;
-            padding: 6px 12px;
+            gap: 4px;
+            padding: 4px 8px;
             background-color: #f0f0f0;
-            border-radius: 20px;
+            border-radius: 16px;
+            font-size: 11px;
         }
         
         .participant-item .remove-btn {
@@ -92,8 +93,8 @@
             color: white;
             border: none;
             border-radius: 50%;
-            width: 20px;
-            height: 20px;
+            width: 14px;
+            height: 14px;
             font-size: 12px;
             cursor: pointer;
             display: flex;
@@ -607,13 +608,6 @@
     </div>
     
     <script>
-        // 页面加载时显示屏幕尺寸
-        window.addEventListener('load', () => {
-            const screenWidth = window.innerWidth;
-            const screenHeight = window.innerHeight;
-            alert(`当前屏幕尺寸：${screenWidth}px × ${screenHeight}px`);
-        });
-        
         // 数据存储
         let participants = [];
         let expenses = [];
