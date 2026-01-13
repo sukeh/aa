@@ -106,62 +106,63 @@
             /* 容器宽度调整 */
             body {
                 padding: 10px;
+                overflow-x: hidden;
             }
             
             .container {
                 padding: 15px;
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
             }
             
             /* 表单布局调整 - 两行填报，一行按钮 */
             .expense-form {
-                display: grid;
+                display: grid !important;
                 grid-template-columns: 1fr 1fr;
                 grid-template-rows: auto auto auto;
                 gap: 10px;
+                flex-wrap: nowrap !important;
             }
             
             /* 第一行：出资人 + 分摊对象 */
             .form-group.payer {
-                grid-column: 1 / 2;
-                grid-row: 1 / 2;
+                grid-column: 1 / 2 !important;
+                grid-row: 1 / 2 !important;
+                width: 100% !important;
             }
             
             .form-group.split {
-                grid-column: 2 / 3;
-                grid-row: 1 / 2;
+                grid-column: 2 / 3 !important;
+                grid-row: 1 / 2 !important;
+                width: 100% !important;
             }
             
             /* 第二行：消费金额 + 消费内容 */
             .form-group.amount {
-                grid-column: 1 / 2;
-                grid-row: 2 / 3;
+                grid-column: 1 / 2 !important;
+                grid-row: 2 / 3 !important;
+                width: 100% !important;
             }
             
             .form-group.description {
-                grid-column: 2 / 3;
-                grid-row: 2 / 3;
+                grid-column: 2 / 3 !important;
+                grid-row: 2 / 3 !important;
+                width: 100% !important;
             }
             
             /* 第三行：添加消费按钮 */
             .add-expense-btn {
-                grid-column: 1 / 3;
-                grid-row: 3 / 4;
+                grid-column: 1 / 3 !important;
+                grid-row: 3 / 4 !important;
                 padding: 15px;
-                font-size: 18px;
+                font-size: 16px;
                 height: auto;
                 width: 100%;
                 border: none;
                 border-radius: 4px;
                 background-color: #2196F3;
                 color: white;
-            }
-            
-            /* 表单元素宽度调整 */
-            .form-group.payer,
-            .form-group.amount,
-            .form-group.description,
-            .form-group.split {
-                width: 100%;
             }
             
             /* 下拉框高度调整 */
@@ -255,18 +256,30 @@
         
         .form-group.payer {
             width: 120px;
+            max-width: 100%;
         }
         
         .form-group.amount {
             width: 120px;
+            max-width: 100%;
         }
         
         .form-group.description {
             flex: 1;
+            min-width: 0;
         }
         
         .form-group.split {
             flex: 1;
+            min-width: 0;
+        }
+        
+        /* 确保所有表单元素在小屏幕上不溢出 */
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
         .multi-select {
@@ -279,6 +292,9 @@
             font-family: Arial, sans-serif;
             font-size: 14px;
             background-color: white;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
         
         /* 美化多选下拉框的选项样式 */
@@ -313,6 +329,7 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 16px;
         }
         
         .add-expense-btn:hover {
@@ -363,6 +380,12 @@
             border: 1px solid #eee;
             border-radius: 4px;
             margin-bottom: 8px;
+        }
+        
+        /* 确保操作列内容居中对齐 */
+        .expense-item > div:last-child {
+            display: flex;
+            justify-content: center;
         }
         
         .expense-item .remove-expense {
@@ -519,7 +542,7 @@
             <h2>1. 参与者管理</h2>
             <div class="participant-manager">
                 <input type="text" id="participantName" placeholder="输入参与者姓名">
-                <button id="addParticipant">添加参与者</button>
+                <button id="addParticipant">添加</button>
             </div>
             <div class="participant-list" id="participantList"></div>
             <div class="error-message" id="participantError"></div>
@@ -577,9 +600,9 @@
         <div class="suggestion" id="suggestion" style="display: none;">
             <div class="suggestion-header">
                 <h2>4. 结算建议</h2>
-                <button id="toggleSuggestion" class="toggle-btn">切换为多行</button>
+                <button id="toggleSuggestion" class="toggle-btn">切换为一行</button>
             </div>
-            <div id="suggestionText" class="single-line"></div>
+            <div id="suggestionText" class="multi-line"></div>
         </div>
     </div>
     
@@ -590,6 +613,7 @@
             const screenHeight = window.innerHeight;
             alert(`当前屏幕尺寸：${screenWidth}px × ${screenHeight}px`);
         });
+        
         // 数据存储
         let participants = [];
         let expenses = [];
@@ -936,8 +960,26 @@
                 suggestion = transferSuggestions.join('；');
             }
             
-            document.getElementById('suggestionText').innerHTML = suggestion;
-        suggestionDiv.style.display = 'block';
+            // 保存原始单行HTML，用于切换恢复
+            originalSuggestionHTML = suggestion;
+            
+            // 默认显示为多行格式
+            const suggestions = suggestion.split('；');
+            const multiLineText = suggestions
+                .map(s => s.trim())
+                .filter(s => s)
+                .join('<br>');
+            
+            // 更新结算建议内容
+            const suggestionText = document.getElementById('suggestionText');
+            suggestionText.innerHTML = multiLineText;
+            
+            // 更新类名和按钮文本，确保状态一致
+            suggestionText.classList.remove('single-line');
+            suggestionText.classList.add('multi-line');
+            toggleSuggestionBtn.textContent = '切换为一行';
+            
+            suggestionDiv.style.display = 'block';
         }
         
         // 监听金额输入，只允许输入数字和小数点，在失去焦点时格式化
@@ -964,6 +1006,4 @@
         });
     </script>
 </body>
-
 </html>
-
