@@ -205,6 +205,14 @@
             }
         }
         
+        /* 确保大屏幕上容器有最大宽度限制 */
+        @media (min-width: 431px) {
+            .container {
+                max-width: 800px !important;
+                width: auto !important;
+            }
+        }
+        
         /* 全局样式 - 适用于所有设备 */
         .expense-list-container {
             overflow-x: auto;
